@@ -26,13 +26,12 @@ export class DataService {
   }
 
   async sendOtp(email: string) {
-    // this.isConnected;
+    this.isConnected;
     const regUser = await this.onRegisterModel
       .findOne({ emailID: email })
       .exec();
     if (!regUser) {
       // await this.onRegisterModel.create({ emailID: email, _id: 1 })
-      // return true;
       throw new HttpException('Invalid email id', HttpStatus.UNAUTHORIZED); // 401
     } else {
       const logUser = await this.onLoginModel
@@ -87,11 +86,15 @@ export class DataService {
   }
 
   async verifyOtp(email: string, otp: string) {
-    // this.isConnected;
+    this.isConnected;
     const regUser = await this.onRegisterModel
       .findOne({ emailID: email })
       .exec();
+      const regUser2 = await this.onRegisterModel
+      .findOne({ where: email })
+      .exec();
     const logUser = await this.onLoginModel.findOne({ emailID: email }).exec();
+    const logUser2 = await this.onLoginModel.findOne({ where: email }).exec();
     if (regUser && logUser && logUser.otp === otp) {
       logUser.isVerified = true;
       logUser.attempts = 0;
@@ -102,6 +105,18 @@ export class DataService {
       const occupation = regUser.occupation;
       regUser.isLoggedIn = true;
       regUser.save();
+      return { token, fullName, occupation };
+    }
+    if (regUser2 && logUser2 && logUser2.otp === otp) {
+      logUser2.isVerified = true;
+      logUser2.attempts = 0;
+      logUser2.save();
+      const payload = { sub: regUser2._id };
+      const token = await this.jwtService.signAsync(payload);
+      const fullName = regUser2.fullName;
+      const occupation = regUser2.occupation;
+      regUser2.isLoggedIn = true;
+      regUser2.save();
       return { token, fullName, occupation };
     } else {
       throw new HttpException('Invalid otp', HttpStatus.UNAUTHORIZED); // 401
